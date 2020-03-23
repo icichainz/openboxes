@@ -11,6 +11,8 @@ package org.pih.warehouse.order
 
 import org.codehaus.groovy.grails.commons.ConfigurationHolder
 import org.pih.warehouse.core.*
+import org.pih.warehouse.shipping.Shipment
+import org.pih.warehouse.shipping.ShipmentStatusCode
 
 class Order implements Serializable {
 
@@ -50,11 +52,12 @@ class Order implements Serializable {
 
     static transients = [
             "isApprovalRequired",
+            "displayStatus",
             "subtotal",
             "totalAdjustments",
             "totalOrderAdjustments",
             "totalOrderItemAdjustments",
-            "total"
+            "total",
     ]
 
     static hasMany = [
@@ -108,6 +111,21 @@ class Order implements Serializable {
     OrderStatus getStatus() {
         return status
     }
+
+    def getDisplayStatus() {
+        def shipments = listShipments()
+        for (ShipmentStatusCode statusCode in
+                [ShipmentStatusCode.RECEIVED, ShipmentStatusCode.PARTIALLY_RECEIVED, ShipmentStatusCode.SHIPPED]) {
+            if (shipments.any { Shipment shipment ->
+                log.info "Shipment shipment ${shipment} status ${shipment.currentStatus} == ${statusCode} ? ${shipment.currentStatus == statusCode}"
+                shipment.currentStatus == statusCode
+            }) {
+                return statusCode
+            }
+        }
+        return status
+    }
+
 
     /**
      * Checks to see if this order has been received, or partially received, and
